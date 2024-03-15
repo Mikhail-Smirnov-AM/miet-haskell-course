@@ -8,8 +8,9 @@ import Data.Word (Word8)
 
 -- используйте сопоставление с образцом
 xor :: Bool -> Bool -> Bool
-xor x y = case () of _ | (x == False && y == False) || (x == True && y == True) -> False
-                     _ | otherwise -> True
+xor False False = False
+xor True True = False
+xor _ _ = True
 
 -- max3 x y z находит максимум из x, y и z
 -- max3 1 3 2 == 3
@@ -18,13 +19,13 @@ xor x y = case () of _ | (x == False && y == False) || (x == True && y == True) 
 -- median3 1 3 2 == 2
 -- median3 5 2 5 == 5
 max3, median3 :: Integer -> Integer -> Integer -> Integer
-max3 x y z = case () of _ | (z >= x) && (z >= y) -> z
-                        _ | (y >= x) && (y >= z) -> y 
-                        _ | otherwise -> x
+max3 x y z | (z >= x) && (z >= y) = z
+max3 x y z | (y >= x) && (y >= z) = y 
+max3 x _ _ = x
 
-median3 x y z = case () of _ | ((y <= x) && (x <= z)) || ((z <= x) && (x <= y)) -> x
-                           _ | ((x <= y) && (y <= z)) || ((z <= y) && (y <= x)) -> y
-                           _ | otherwise -> z
+median3 x y z | ((y <= x) && (x <= z)) || ((z <= x) && (x <= y)) = x 
+median3 x y z | ((x <= y) && (y <= z)) || ((z <= y) && (y <= x)) = y
+median3 _ _ z = z
 
 -- Типы данных, описывающие цвета в моделях 
 -- RGB (https://ru.wikipedia.org/wiki/RGB), компоненты от 0 до 255

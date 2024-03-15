@@ -81,9 +81,12 @@ main = hspec $ do
             lastNel (NEL 1 []) `shouldBe` 1
         it "zipNel" $ do
             zipNel (NEL 1 [2,3]) (NEL 4 [5,6]) `shouldBe` (NEL (1,4) [(2,5),(3,6)])
+            zipNel (NEL 1 [2,3]) (NEL 4 [5,6,7]) `shouldBe` (NEL (1,4) [(2,5),(3,6)])
+            zipNel (NEL 1 [2,3,7]) (NEL 4 [5,6]) `shouldBe` (NEL (1,4) [(2,5),(3,6)])
+            zipNel (NEL 1 []) (NEL 4 []) `shouldBe` (NEL (1,4) [])
         it "listToNel" $ do 
-            listToNel [1,2,3] `shouldBe` (NEL 1 [2,3])
-            listToNel [1] `shouldBe` (NEL 1 [])
+            listToNel [1,2,3] `shouldBe` Just (NEL 1 [2,3])
+            listToNel [1] `shouldBe` Just (NEL 1 [])
         it "nelToList" $ do
             nelToList (NEL 1 [2, 3]) `shouldBe` [1,2,3]
             nelToList (NEL 1 []) `shouldBe` [1]

@@ -49,10 +49,15 @@ find _ [] = Nothing
 find f (x:xs) = if f x then Just x else find f xs
 
 find_filter :: (a -> Bool) -> [a] -> Maybe a
-find_filter f xs = if null filter_x 
-                   then Nothing
-                   else Just (filter_x !! 0)
-                   where filter_x = filter f xs
+find_filter f xs = case filter_x of
+                    [] -> Nothing
+                    _  -> Just (filter_x !! 0)
+                    where filter_x = filter f xs
+    
+                   --if null filter_x 
+                   --then Nothing
+                   --else Just (filter_x !! 0)
+                   --where filter_x = filter f xs
 
 findLast :: (a -> Bool) -> [a] -> Maybe a
 findLast f xs = if null filter_x 
@@ -92,11 +97,14 @@ lastNel (NEL x []) = x
 lastNel (NEL x (x0:xs)) = lastNel(NEL x0 xs)
 
 zipNel :: NEL a -> NEL b -> NEL (a,b)
-zipNel x y = listToNel (zip (nelToList x) (nelToList y))
+zipNel (NEL x []) (NEL y []) = NEL (x,y) []
+zipNel (NEL x _) (NEL y []) = NEL (x,y) []
+zipNel (NEL x []) (NEL y _) = NEL (x,y) []
+zipNel (NEL x (xs:xss)) (NEL y (ys:yss)) = NEL (x,y) (nelToList (zipNel (NEL xs xss) (NEL ys yss)))
 
-listToNel :: [a] -> NEL a
-listToNel [] = error "Cannot convert empty list to NEL"
-listToNel (x:xs) = NEL x xs
+listToNel :: [a] -> Maybe (NEL a)
+listToNel [] = Nothing
+listToNel (x:xs) = Just (NEL x xs)
 
 nelToList :: NEL a -> [a]
 nelToList (NEL x xs) = x:xs
