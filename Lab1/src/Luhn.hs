@@ -10,5 +10,24 @@ module Luhn where
 -- Не пытайтесь собрать всё в одну функцию, используйте вспомогательные.
 -- Например: разбить число на цифры (возможно, сразу в обратном порядке).
 -- Не забудьте добавить тесты, в том числе для вспомогательных функций!
+
+-- составление списка из цифр номера карты (в обратном порядке)
+intToList :: Int -> [Int]
+intToList x =  if x < 10 
+               then x:[]
+               else (mod x 10):(intToList (div x 10))
+
+-- удвоение цифр, стоящих на четных позициях с конца
+double_digits :: [Int] -> [Int]
+double_digits [] = []
+double_digits (x0:[]) = x0:[]
+double_digits (x0:x1:xs) = x0:(if new_x1 > 9 then new_x1-9 else new_x1):(double_digits xs)
+                            where new_x1 = 2*x1
+
+-- проверка корректности номера карты
 isLuhnValid :: Int -> Bool
-isLuhnValid = error "todo"
+isLuhnValid x = if x < 0 
+                then False
+                else if (mod (sum (double_digits (intToList x))) 10) == 0
+                     then True
+                     else False 
