@@ -12,13 +12,19 @@ newtype Poly a = P [a]
 
 -- Определите многочлен $x$.
 x :: Num a => Poly a
-x = undefined
+x = (P [0,1])
 
 -- Задание 2 -----------------------------------------
 
 -- Функция, считающая значение многочлена в точке
 applyPoly :: Num a => Poly a -> a -> a
-applyPoly = undefined
+applyPoly (P []) _ = 0
+applyPoly (P (p:ps)) x0 = p + x0*applyPoly (P ps) x0
+
+
+-- при обратном порядке коэффициентов вычисления бы стали сложнее,
+-- так как первые бы слагаемые в сумме содержали бы x0 в больших степенях,
+-- которые нужно было бы вычислять через степень полинома (равную длине списка)
 
 -- Задание 3 ----------------------------------------
 
@@ -26,8 +32,32 @@ applyPoly = undefined
 -- Заметьте, что многочлены с разными списками коэффициентов
 -- могут быть равны! Подумайте, почему.
 instance (Num a, Eq a) => Eq (Poly a) where
-    (==) = undefined
+    P p1 == P p2 = let diff = length p2 - length p1
+                       p1_ext = if diff > 0
+                                then p1 ++ (replicate diff 0)
+                                else p1
+                       p2_ext = if diff < 0
+                                then p2 ++ (replicate (abs diff) 0)
+                                else p2 
+                       p12_list = zipWith (-) p1_ext p2_ext
+                       p12 = P p12_list
+                       in and (map (\el -> (applyPoly p12 el) == 0) p12_list)
  
+ -- равенство проверяется следующим образом:
+ -- 1. Находится многочлен P12 = P1 - P2
+ -- 2. Если данный многочлен - тождественный ноль, то P1 == P2
+ -- 3. Проверка многочлена на равенство нулю производится
+ -- с помощью леммы Шварца-Зиппеля: проверяется значение многочлена 
+ -- P12 в deg P12 точках (рассматриваемые точки - коэффициенты многочлена P12):
+ -- если во всех точках многочлен равен нулю, то можно считать, что P1 == P2
+ 
+ -- многочлены с разными коэффициентами могут быть равны, если это многочлены не над полем вещественных чисел,
+ -- а над некоторым другим кольцом или полем с другими операциями сложения и умножения
+ -- например, многочлены 2x и 2x^2 над кольцом Z4
+
+ -- в данном случае непринципиально в каком порядке следуют коэффициенты многочлена
+ -- (за исключением усложнения вычисления функции applyPoly)
+
 -- Задание 4 -----------------------------------------
 
 -- Определите перевод многочлена в строку. 
@@ -35,19 +65,59 @@ instance (Num a, Eq a) => Eq (Poly a) where
 -- например: show (3 * x * x + 1) == "3 * x^2 + 1").
 -- (* и + для многочленов можно будет использовать после задания 6.)
 instance (Num a, Eq a, Show a) => Show (Poly a) where
-    show = undefined
+    show (P [0]) = "0"
+    show (P p) = if last p /= abs (last p) -- если старший коэффициент положительный, необходимо убрать знак "+" перед ним
+                 then string_concat
+                 else drop 3 string_concat
+                 where string_concat = concat (reverse string_nonzero_term) -- конкатенация списка одночленов
+                       string_nonzero_term = filter (/= "") string_term -- удаление "пустых" одночленов из списка
+                       -- объединение коэффициента с "x" и степенью одночлена
+                       -- одночлены с нулевыми коэффициентами обращаются в ""
+                       string_term = map (\(p_i,x_i,pow_i) -> case p_i of
+                                                              0 -> ""
+                                                              _ | p_i == abs p_i -> " + " ++ show p_i ++ x_i ++ pow_i
+                                                              _ -> " - " ++ show (abs p_i) ++ x_i ++ pow_i) string_p_x_pow
+                       string_p_x_pow = zip3 p string_x string_pow
+                       -- список символов переменных со знаками возведения в степень и умножения
+                       string_x = [""] ++ [" * x"] ++ (replicate (length p - 2) " * x^")
+                       -- список степеней
+                       string_pow = ["",""] ++ (map show [2,3..length p])
+
+-- нет разницы, какой порядок коэффициентов использовать:
+-- от этого будет зависеть только список степеней: [length p, (length p) -1..2] или [2,3,.. length p]
 
 -- Задание 5 -----------------------------------------
 
 -- Определите сложение многочленов
 plus :: Num a => Poly a -> Poly a -> Poly a
-plus = undefined
+plus (P p1) (P p2) = let diff = length p2 - length p1
+                         p1_ext = if diff > 0
+                                  then p1 ++ (replicate diff 0)
+                                  else p1
+                         p2_ext = if diff < 0
+                                  then p2 ++ (replicate (abs diff) 0)
+                                  else p2
+                     in P (zipWith (+) p1_ext p2_ext)
+
+ -- нет разницы какой порядок следования коэффициентов выбрать                       
 
 -- Задание 6 -----------------------------------------
 
 -- Определите умножение многочленов
 times :: Num a => Poly a -> Poly a -> Poly a
-times = undefined
+times (P []) _ = P []
+-- умножение (a0+a1*x+...+an*x^n)*(b0+b1*x+...+bm*x^m) сводится к 
+-- a0*(b0+b1*x+...+bm*x^m)+a1*x*(b0+b1*x+...+bm*x^m)
+-- умножение на константу C представляет из себя умножение всех коэффициентов на C
+-- умножение на x представляет собой добавление нулевого элемента в начало списка коэффициентов 
+times (P [x0,x1]) (P p) = plus (P (map (x0 *) p)) (P (0:(map (x1 *) p)))
+times (P (p1:p1s)) (P p2) = let term1 = P (map (p1 *) p2)
+                                term2 = times (P p1s) (P p2)
+                                term2x = times x term2
+                        in plus term1 term2x
+
+-- обратный порядок коэффициентов значительно усложнил бы вычисление произведения по данному алгоритму,
+-- так как невозможно было бы представить в виде рекурсии
 
 -- Задание 7 -----------------------------------------
 
@@ -55,8 +125,8 @@ times = undefined
 instance Num a => Num (Poly a) where
     (+) = plus
     (*) = times
-    negate      = undefined
-    fromInteger = undefined
+    negate      = ((P [-1]) *)
+    fromInteger c = (P [fromInteger c])
     -- Эти функции оставить как undefined, поскольку для 
     -- многочленов они не имеют математического смысла
     abs    = undefined
@@ -68,12 +138,26 @@ instance Num a => Num (Poly a) where
 class Num a => Differentiable a where
     -- взятие производной
     deriv  :: a -> a
+    deriv p = nderiv 1 p
     -- взятие n-ной производной
     nderiv :: Int -> a -> a
-    nderiv = undefined
+    nderiv 0 p = p 
+    nderiv n p = nderiv (n-1) (deriv p)
 
 -- Задание 9 -----------------------------------------
 
 -- Определите экземпляр класса типов
 instance Num a => Differentiable (Poly a) where
-    deriv = undefined
+    -- вычисление производной сводится к умножению списка коэффициентов 
+    -- на список степеней одночленов и удаление первого элемента получившегося списка
+    deriv (P p) = let indices :: Num a => [a]->[a]
+                      indices [] = []
+                      indices (x0:[]) = [fromInteger 0]
+                      indices (x0:xs) = ((head next_part) + 1):next_part
+                                         where next_part = indices xs
+                  in case p of
+                     [p0] -> P [0]
+                     _ ->  P (tail (zipWith (*) (reverse . indices $ p) p))
+                                    
+-- при обратном порядке коэффициентов не было бы необходимости использовать reverse,
+-- но с другой стороны удаление первого элемента было бы вычислительно сложнее
